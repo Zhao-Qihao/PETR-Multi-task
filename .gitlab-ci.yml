@@ -1,0 +1,29 @@
+stages:
+  - build-env
+  - test
+
+build_env:
+  stage: build-env
+  script:
+    - echo "Setting up environment..."
+    - echo "${CI_PROJECT_DIR}"
+    - cd ${CI_PROJECT_DIR}
+    - ln -s /home/share/drive/modelzoos/pretrained ./
+    - rm -rf ./data
+    - mkdir data
+    - ln -s /home/share/nuScenes/nuscenes ./data/
+    - echo "Starting openmmlab container..."
+    - docker start CI_petr
+    - docker exec CI_petr bash -c "
+            cd ${CI_PROJECT_DIR} &&
+            pip install -v -e . "
+
+test:
+  stage: test
+  variables:
+    GIT_STRATEGY: "none" 
+  script:
+    - echo "Running PETR-multi-task test inside container..."
+    - docker exec CI_petr bash -c "
+            cd ${CI_PROJECT_DIR} &&
+            python tools/test.py projects/PETR/configs/petr_track.py ./pretrained/petr_track_256x704.pth"
